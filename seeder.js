@@ -29,6 +29,8 @@ const createProfile = async (professionCount) => {
     profile_type: profileType,
     private: 1,
     full_name: faker.name.findName(),
+    dob: faker.date.between('1960-01-01', '2006-01-01'),
+    gender: Math.random() >= 0.5 ? 'M' : 'F',
     verified: Math.random() >= 0.9 ? 1 : 0,
     bio: faker.lorem.sentences(2),
     website: faker.internet.domainName(),
@@ -145,11 +147,11 @@ const createPosts = (profileCount, limit) => {
   });
 };
 
-const createComments = (profile_count, postCount, limit) => {
+const createComments = (profileCount, postCount, limit) => {
   const comments = [];
 
   // Loop through all users
-  for (let i = 1; i <= profile_count; i++) {
+  for (let i = 1; i <= profileCount; i++) {
     const totalComments = Math.floor(Math.random() * (limit + 1));
 
     for (let j = 1; j <= totalComments; j++) {
@@ -176,22 +178,70 @@ const createComments = (profile_count, postCount, limit) => {
   });
 };
 
-const generateData = (profileCount, professionCount) => {
-  const professions = createProfessions(professionCount);
-  fs.writeFileSync('data/professions.json', JSON.stringify(professions));
+const createLikes = (profileCount, postCount, limit) => {
+  const likes = [];
 
-  createProfiles(profileCount, professions.length).then((profiles) => {
-    fs.writeFileSync('data/profiles.json', JSON.stringify(profiles));
+  // Loop through all users
+  for (let i = 1; i <= profileCount; i++) {
+    const likeCount = Math.floor(Math.random() * (limit + 1));
 
-    const followers = createFollowers(profiles.length);
-    fs.writeFileSync('data/followers.json', JSON.stringify(followers));
+    if (likeCount !== 0) {
+      let j = 0;
+      let postsLiked = [];
 
-    const posts = createPosts(profiles.length, 25);
-    fs.writeFileSync('data/posts.json', JSON.stringify(posts));
+      while (j <= likeCount) {
+        // Select a random post to like
+        const post = Math.floor(Math.random() * postCount) + 1;
 
-    const comments = createComments(profiles.length, posts.length, 30);
-    fs.writeFileSync('data/comments.json', JSON.stringify(comments));
+        if (!postsLiked.includes(post)) {
+          postsLiked.push(post);
+
+          // Generate like
+          const like = {
+            profile_id: i,
+            post_id: post,
+            like_date: faker.date.between('2010-01-01', '2020-11-23'),
+          };
+
+          // Add like
+          likes.push(like);
+
+          j++;
+        }
+      }
+    }
+  }
+
+  return likes.sort((a, b) => {
+    return new Date(a.like_date).getTime() - new Date(b.like_date).getTime();
   });
 };
 
-generateData(10, 10);
+const generateData = (profileCount, professionCount) => {
+  try {
+    const professions = createProfessions(professionCount);
+    fs.writeFileSync('data/professions.json', JSON.stringify(professions));
+
+    createProfiles(profileCount, professions.length).then((profiles) => {
+      fs.writeFileSync('data/profiles.json', JSON.stringify(profiles));
+
+      const followers = createFollowers(profiles.length);
+      fs.writeFileSync('data/followers.json', JSON.stringify(followers));
+
+      const posts = createPosts(profiles.length, 25);
+      fs.writeFileSync('data/posts.json', JSON.stringify(posts));
+
+      const comments = createComments(profiles.length, posts.length, 30);
+      fs.writeFileSync('data/comments.json', JSON.stringify(comments));
+
+      const likes = createLikes(profiles.length, posts.length, posts.length);
+      fs.writeFileSync('data/likes.json', JSON.stringify(likes));
+    });
+
+    console.log('Data Created');
+  } catch (e) {
+    console.log('something went wrong', e);
+  }
+};
+
+generateData(100, 30);
